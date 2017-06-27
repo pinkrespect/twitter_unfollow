@@ -1,5 +1,6 @@
 from secret import CKEY, CSECRET, ATOKEN, ASECRET
 from tweepy import OAuthHandler
+from sqlalchemy import create_engine
 import time
 import tweepy
 
@@ -7,6 +8,8 @@ auth = OAuthHandler(CKEY, CSECRET)
 auth.set_access_token(ATOKEN, ASECRET)
 api = tweepy.API(auth)
 ME = api.me().screen_name.lower()
+
+engine = create_engine('sqlite:///test.db')
 
 mentions = []
 friends = []
@@ -23,7 +26,7 @@ def limit_handled(cursor, origin):
             yield cursor.next()
         except tweepy.RateLimitError:
             print("Rate Limit: sleep 15 minutes")
-            print(origin)
+            print(origin, "size of origin", len(origin))
             time.sleep(15 * 60)
 
 
@@ -35,7 +38,7 @@ def load_list(origin):
         for temp in limit_handled(tweepy.Cursor(api.friends,
                                                 screen_name=ME).items(),
                                   origin):
-            origin.append(temp.users.screen_name)
+            origin.append(temp.screen_name)
     elif origin is mentions:
         print("mentions process")
         for temp in limit_handled(tweepy.Cursor(api.search,
