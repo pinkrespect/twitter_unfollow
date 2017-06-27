@@ -1,6 +1,5 @@
 from secret import CKEY, CSECRET, ATOKEN, ASECRET
 from tweepy import OAuthHandler
-from sqlalchemy import create_engine
 import time
 import tweepy
 
@@ -9,52 +8,41 @@ auth.set_access_token(ATOKEN, ASECRET)
 api = tweepy.API(auth)
 ME = api.me().screen_name.lower()
 
-engine = create_engine('sqlite:///test.db')
-
-mentions = []
-friends = []
-
-
-def duplicate_remove(origin):
-    return list(set(origin))
-
 
 # rate limit handler - tweepy code snippets
-def limit_handled(cursor, origin):
+def limit_handled(cursor, origin_set):
     while True:
         try:
             yield cursor.next()
+
         except tweepy.RateLimitError:
-            print("Rate Limit: sleep 15 minutes")
-            print(origin, "size of origin", len(origin))
+            print("size of list", len(origin_set))
             time.sleep(15 * 60)
 
 
-def load_list(origin):
-    global mentions
-    global friends
-    if origin is friends:
-        print("friends process")
-        for temp in limit_handled(tweepy.Cursor(api.friends,
-                                                screen_name=ME).items(),
-                                  origin):
-            origin.append(temp.screen_name)
-    elif origin is mentions:
-        print("mentions process")
-        for temp in limit_handled(tweepy.Cursor(api.search,
-                                                q='to:'+ME).items(),
-                                  origin):
-            origin.append(temp.screen_name)
-
-    origin = duplicate_remove(origin)
-    origin.sort()
-    print(origin)
-    return origin
+def load_friends():
+    friends = set()
+    for temp in limit_handled(tweepy.Cursor(api.friends,
+                                            screen_name=ME).items(),
+                              friends):
+        friends.add(temp.screen_name)
+    return friends
 
 
-friends = load_list(friends)
-print(friends)
+def load_mentions():
+    mentions = set()
+    for temp in limit_handled(tweepy.Cursor(api.friends,
+                                            screen_name=ME).items(),
+                              mentions):
+        mentions.add(temp.screen_name)
+    return mentions
 
-friends = load_list(mentions)
-print(mentions)
 
+friends = load_friends()
+print(" size of friends: ", len(friends))
+
+mentions = load_mentions()
+print(" size of mentions: ", len(mentions))
+
+unfollow_list = list(friends - mentions)
+print(" unfollow list: ", unfollow_list)
