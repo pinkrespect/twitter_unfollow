@@ -44,5 +44,5 @@ print(" size of friends: ", len(friends))
 mentions = load_mentions()
 print(" size of mentions: ", len(mentions))
 
-unfollow_list = list(friends - mentions)
+unfollow_list = friends - mentions
 print(" unfollow list: ", unfollow_list)
